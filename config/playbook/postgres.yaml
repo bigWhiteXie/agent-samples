@@ -1,0 +1,49 @@
+playbooks:
+  - name: "generalMonitoring"
+    task_goal: "综合监控数据库,检测重要指标是否正常"
+    middle: "postgres"
+    steps:
+      - name: "检查CPU利用率"
+        details: "获取并分析CPU利用率指标，确保CPU使用率在可接受范围内"
+        tool_list: ["get_cpu_usage"]
+      - name: "检查其他关键指标"
+        details: "监控可用内存、数据库连接数、读写IOPS、磁盘队列深度等关键指标"
+        tool_list: ["get_disk_metrics", "get_connections_statistics"]
+      - name: "评估慢查询"
+        details: "获取并审查慢查询，识别已知查询并确保它们已优化或被认为是可接受的"
+        tool_list: ["get_slow_queries"]
+      - name: "记录发现"
+        details: "记录发现的任何问题和采取的行动，注意任何重复模式或需要改进的领域"
+        tool_list: []
+
+  - name: "investigateSlowQueries"
+    task_goal: "调查慢查询原因"
+    middle: "postgres"
+    steps:
+      - name: "步骤1：检查是否存在慢查询"
+        details: "工具：get_slow_queries。目的：快速确认当前数据库中是否存在执行时间过长的查询。决策逻辑：如果没有找到慢查询，则立即停止排查，返回当前未发现执行时间过长的查询；如果找到慢查询，请记录查询语句以及涉及到的表，进入到下一步"
+        tool_list: ["get_slow_queries"]
+      - name: "步骤2：获取查询执行计划"
+        details: "工具：explain_query。目的: 分析查询的实际执行路径和性能瓶颈。方法：选择一个查询进行调查，优先选择SELECT查询，避免UPDATE、DELETE、INSERT，避免涉及pg_catalog或information_schema的内省查询"
+        tool_list: ["explain_query"]
+      - name: "步骤3：分析索引使用情况"
+        details: "工具：check_table_indexes。目的: 检查所有涉及的表是否缺少必要索引或索引未被正确使用。要求: 仔细阅读执行计划中的扫描类型和索引使用情况。决策逻辑：存在Seq Scan且表数据量大，则可能缺少索引，进入步骤3.1；存在低效的Index Scan，则可能索引选择不当，进入步骤3.2；索引使用合理，则进入步骤4"
+        tool_list: ["check_table_indexes"]
+      - name: "步骤3.1：分析缺失索引"
+        details: "工具：detect_missing_indexes。目的：识别可能提高查询性能的缺失索引。决策逻辑：如果idx_scan为0，则索引未被使用，建议删除或重建；如果缺少WHERE条件字段索引，则建议创建新索引；如果索引策略合理，则进入步骤3.2"
+        tool_list: ["detect_missing_indexes"]
+      - name: "步骤3.2：分析SQL写法问题"
+        details: "要求：检查SQL语句是否存在写法问题导致性能低下。分析要点：检查执行计划中的Filter条件；分析连接顺序和连接类型；检查子查询和CTE使用；验证数据类型匹配。决策逻辑：存在隐式类型转换，则建议显式类型转换；嵌套循环连接低效，则建议重写查询或添加索引；SQL写法优化后仍慢，则进入步骤4；SQL写法问题可优化，给出优化建议，终止排障"
+        tool_list: ["explain_query"]
+      - name: "步骤4：检查数据库配置"
+        details: "工具：check_config_parameters。目的：确认数据库参数配置是否合理。决策逻辑：参数配置明显不合理，则建议调整参数；参数配置合理，则进入步骤5"
+        tool_list: ["check_config_parameters"]
+      - name: "步骤5：检查磁盘I/O性能"
+        details: "工具：check_disk_io。目的：检测磁盘I/O是否存在瓶颈。关键指标分析：%util，磁盘利用率（>80%表示瓶颈）；await，I/O平均等待时间（>10ms表示慢）；svctm，磁盘服务时间。决策逻辑：I/O指标正常: 进入步骤6；I/O存在瓶颈: 建议优化磁盘或调整数据布局"
+        tool_list: ["check_disk_io"]
+      - name: "步骤6：检查系统资源"
+        details: "工具：check_system_resource。目的：检查内存、CPU和系统负载。关键指标：r为运行队列长度，swap为交换活动，cpu为cpu使用率。决策逻辑：系统资源充足，则问题可能在其他方面；内存不足或CPU饱和，则建议扩容或优化"
+        tool_list: ["check_system_resource"]
+      - name: "步骤7：生成排障报告"
+        details: "目的：汇总发现的问题和优化建议。输出内容：1、慢查询语句和执行时间；2、执行计划分析结果；3、索引使用情况和建议；4、SQL写法优化建议；5、系统资源配置评估；6、磁盘I/O性能评估；7、综合优化建议"
+        tool_list: []

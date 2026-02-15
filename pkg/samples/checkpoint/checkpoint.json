@@ -1,0 +1,107 @@
+{
+    "Type": {
+        "PointerNum": 1,
+        "StructType": "_eino_checkpoint"
+    },
+    "MapValues": {
+        "SubGraphs": {},
+        "InterruptID2Addr": {
+            "MapValues": {
+                "\"13e94242-ed52-475a-9d81-846c9295ae75\"": {
+                    "SliceValues": [
+                        {
+                            "MapValues": {
+                                "ID": null,
+                                "Type": {
+                                    "JSONValue": "runnable"
+                                },
+                                "SubID": null
+                            }
+                        }
+                    ]
+                },
+                "\"cab4f03e-c525-471c-a83f-00b83a5dee56\"": {
+                    "SliceValues": [
+                        {
+                            "MapValues": {
+                                "ID": null,
+                                "Type": {
+                                    "JSONValue": "runnable"
+                                },
+                                "SubID": null
+                            }
+                        },
+                        {
+                            "MapValues": {
+                                "ID": {
+                                    "JSONValue": "node2"
+                                },
+                                "Type": {
+                                    "JSONValue": "node"
+                                },
+                                "SubID": null
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "InterruptID2State": {
+            "MapValues": {
+                "\"cab4f03e-c525-471c-a83f-00b83a5dee56\"": {
+                    "MapValues": {
+                        "State": {
+                            "Type": {
+                                "SimpleType": "_eino_string"
+                            },
+                            "JSONValue": "pass"
+                        },
+                        "LayerSpecificPayload": null
+                    }
+                },
+                "\"13e94242-ed52-475a-9d81-846c9295ae75\"": null
+            }
+        },
+        "Channels": {
+            "MapValues": {
+                "\"node2\"": {
+                    "Type": {
+                        "PointerNum": 1,
+                        "StructType": "_eino_pregel_channel"
+                    },
+                    "MapValues": {
+                        "Values": {}
+                    }
+                },
+                "\"end\"": {
+                    "Type": {
+                        "PointerNum": 1,
+                        "StructType": "_eino_pregel_channel"
+                    },
+                    "MapValues": {
+                        "Values": {}
+                    }
+                },
+                "\"node1\"": {
+                    "Type": {
+                        "PointerNum": 1,
+                        "StructType": "_eino_pregel_channel"
+                    },
+                    "MapValues": {
+                        "Values": {}
+                    }
+                }
+            }
+        },
+        "Inputs": {},
+        "State": null,
+        "SkipPreHandler": {},
+        "RerunNodes": {
+            "SliceValues": [
+                {
+                    "JSONValue": "node2"
+                }
+            ]
+        }
+    }
+}

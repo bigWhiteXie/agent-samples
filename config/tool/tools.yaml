@@ -1,0 +1,132 @@
+inner_tools:
+  - toolName: "bash"        # 工具名称
+    enabled: true         # 是否启用
+    authConfig:           # 认证配置
+      type: "perNode"     # 认证类型: none(无需认证), global(全局认证), perNode(每个节点单独认证)
+      nodeAuths:          # 节点级别认证信息
+        master:
+          username: "root"
+          password: "j3391111!"
+          host: "192.168.126.100"
+          sshPort: "22"
+    execTemplates:
+      - name: "ping"
+        description: "检查ip是否可达，不需要指定node"
+        exec: "ping -c 3 {{.ip}}"
+        parameters:
+          - name: "ip"
+            description: "IP地址或域名"
+            required: true
+      - name: "check_disk_usage"
+        description: "检查指定路径的磁盘使用情况，包括总空间、已用空间、可用空间和使用率"
+        exec: "df -h {{.path}}"
+        parameters:
+          - name: "path"
+            description: "文件系统路径，如 / 或 /var"
+            required: true
+      - name: "check_network_status"
+        description: "检查网络连接状态，包括网络接口、路由表和连接统计"
+        exec: "echo '=== 网络接口信息 ===' && ip addr show && echo '' && echo '=== 路由表 ===' && ip route show && echo '' && echo '=== 网络连接统计 ===' && ss -tuln && echo '' && echo '=== 网络IO统计 ===' && cat /proc/net/dev"
+      - name: "check_disk_io"
+        description: "检查磁盘IO性能，包括读写速度、IO等待时间和设备利用率"
+        exec: "echo '=== 磁盘IO统计 ===' && if command -v iostat >/dev/null 2>&1; then echo '使用 iostat 命令:' && iostat -xz 1 5; else echo '使用 /proc/diskstats 替代方案:' && echo '设备名            读完成次数     合并读次数     读扇区数     写完成次数     合并写次数     写扇区数     正在进行IO     毫秒 spend   毫秒 weighted' && cat /proc/diskstats | awk '{printf \"%-16s %12d %12d %12d %12d %12d %12d %12d %12d %12d\\n\", $3, $4, $5, $6, $7, $8, $9, $10, $11, $12}'; fi && echo '' && echo '=== 磁盘使用情况 ===' && df -h && echo '' && echo '=== IO调度器信息 ===' && for disk in $(lsblk -d -o NAME | tail -n +2); do echo \"Disk: $disk\" && cat /sys/block/$disk/queue/scheduler 2>/dev/null || echo \"无法获取调度器信息\"; done"
+      - name: "get_cpu_usage"
+        description: "获取CPU使用率信息，包括总体使用率、各核心使用率和负载平均值"
+        exec: "echo '=== CPU使用率 ===' && top -bn1 | grep 'Cpu(s)' && echo '' && echo '=== 负载平均值 ===' && uptime && echo '' && echo '=== CPU详细信息 ===' && cat /proc/cpuinfo | grep -E 'processor|model name|cpu MHz' | head -20 && echo '' && echo '=== 各核心使用率 ===' && mpstat -P ALL 1 1 2>/dev/null || echo '未安装mpstat工具'"
+      - name: "get_memory_usage"
+        description: "获取内存使用情况，包括总内存、已用内存、可用内存和交换分区使用情况"
+        exec: "echo '=== 内存使用情况 ===' && free -h && echo '' && echo '=== 内存详细信息 ===' && cat /proc/meminfo | head -20 && echo '' && echo '=== 进程内存使用TOP10 ===' && ps aux --sort=-%mem | head -11"
+      - name: "get_system_load"
+        description: "获取系统负载信息，包括负载平均值、运行进程数和系统运行时间"
+        exec: "echo '=== 系统负载 ===' && uptime && echo '' && echo '=== 进程统计 ===' && ps aux | awk 'NR>1 {sum+=$3} END {print \"总CPU使用率: \" sum \"%\"}' && echo '运行中进程数: ' $(ps aux | grep -v grep | wc -l) && echo '' && echo '=== CPU使用率TOP10进程 ===' && ps aux --sort=-%cpu | head -11"
+      - name: "get_disk_metrics"
+        description: "获取磁盘使用指标，包括磁盘空间使用情况、IO统计和磁盘性能"
+        exec: "echo '=== 磁盘空间使用 ===' && df -h && echo '' && echo '=== 磁盘IO统计 ===' && iostat -x 1 1 2>/dev/null || (echo '未安装iostat，使用基础统计:' && cat /proc/diskstats | head -10) && echo '' && echo '=== 磁盘挂载信息 ===' && mount | grep -E '^/dev/' | head -10"
+      - name: "get_network_metrics"
+        description: "获取网络使用指标，包括网络接口流量、连接数和网络IO统计"
+        exec: "echo '=== 网络接口流量 ===' && cat /proc/net/dev && echo '' && echo '=== 网络连接统计 ===' && ss -s && echo '' && echo '=== 活跃网络连接 ===' && ss -tuln | head -20 && echo '' && echo '=== 网络接口状态 ===' && ip link show"
+      - name: "get_process_metrics"
+        - name: "get_process_metrics"
+        description: "获取进程相关指标，包括进程数量、资源使用情况和系统调用统计"
+        exec: "echo '=== 进程统计 ===' && echo '总进程数: ' $(ps aux | wc -l) && echo '运行中: ' $(ps aux | grep -E ' R ' | wc -l) && echo '睡眠中: ' $(ps aux | grep -E ' S ' | wc -l) && echo '' && echo '=== 资源使用TOP进程 ===' && ps aux --sort=-%cpu,-%mem | head -11 && echo '' && echo '=== 系统调用统计 ===' && cat /proc/stat | grep -E 'processes|procs_running|procs_blocked'"
+      - name: "check_system_resource"
+        description: "检查系统资源使用情况"
+        exec: "vmstat 1 5"
+
+local_tools:
+  - toolName: "kubectl"     # 工具名称
+    authConfig:           # 认证配置
+      type: "none"        # 认证类型: none(无需认证), global(全局认证), perNode(每个节点单独认证)
+    description: "Kubernetes集群管理工具，用于监控、管理和排查Kubernetes集群中的资源状态。提供Pod、节点、服务、部署等资源的查看和管理功能，支持日志查看、资源使用监控、事件查询等操作，是Kubernetes环境下的核心运维工具。"
+    timeout: 60           # 超时时间（秒）
+    execTemplates:
+      - name: "get_pods"
+        description: "列出命名空间中的所有Pod，显示状态、重启次数和运行时间"
+        exec: "kubectl get pods -n {{.namespace}}"
+        parameters:
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "get_nodes"
+        description: "列出集群中的所有节点，显示状态、角色、版本和资源使用情况"
+        exec: "kubectl get nodes -o wide"
+        parameters: []
+      - name: "describe_pod"
+        description: "查看指定Pod的详细信息，包括事件、容器状态、资源限制等"
+        exec: "kubectl describe pod {{.pod_name}} -n {{.namespace}}"
+        parameters:
+          - name: "pod_name"
+            description: "Pod名称"
+            required: true
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "describe_node"
+        description: "查看指定节点的详细信息，包括容量、分配资源、标签、污点等"
+        exec: "kubectl describe node {{.node_name}}"
+        parameters:
+          - name: "node_name"
+            description: "节点名称"
+            required: true
+      - name: "get_services"
+        description: "列出命名空间中的所有服务，显示类型、集群IP和端口映射"
+        exec: "kubectl get services -n {{.namespace}}"
+        parameters:
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "get_deployments"
+        description: "列出命名空间中的所有部署，显示副本数、镜像和可用状态"
+        exec: "kubectl get deployments -n {{.namespace}}"
+        parameters:
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "pod_logs"
+        description: "查看指定Pod的日志（不持续跟踪），限制输出行数"
+        exec: "kubectl logs {{.pod_name}} -n {{.namespace}} --tail=100"
+        parameters:
+          - name: "pod_name"
+            description: "Pod名称"
+            required: true
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "top_pods"
+        description: "查看命名空间中Pod的CPU和内存使用情况"
+        exec: "kubectl top pods -n {{.namespace}}"
+        parameters:
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false
+      - name: "top_nodes"
+        description: "查看集群中节点的CPU和内存使用情况"
+        exec: "kubectl top nodes"
+        parameters: []
+      - name: "get_events"
+        description: "查看命名空间中的事件，按时间排序显示最近的事件"
+        exec: "kubectl get events -n {{.namespace}} --sort-by='.metadata.creationTimestamp'"
+        parameters:
+          - name: "namespace"
+            description: "Kubernetes命名空间，默认为default"
+            required: false

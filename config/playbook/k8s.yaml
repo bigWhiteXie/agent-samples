@@ -1,0 +1,138 @@
+playbooks:
+  - name: "generalMonitoring"
+    task_goal: "综合监控Kubernetes集群，检测重要指标是否正常"
+    middle: "kubectl"
+    steps:
+      - name: "检查节点状态"
+        details: "获取并分析集群中所有节点的状态，确保节点处于Ready状态"
+        tool_list: ["get_nodes"]
+      - name: "检查Pod状态"
+        details: "监控命名空间中的Pod状态，识别异常状态的Pod"
+        tool_list: ["get_pods"]
+      - name: "检查资源使用情况"
+        details: "查看节点和Pod的CPU、内存使用情况，确保资源使用在可接受范围内"
+        tool_list: ["top_nodes", "top_pods"]
+      - name: "分析集群事件"
+        details: "获取最近的集群事件并查找警告或错误信息"
+        tool_list: ["get_events"]
+      - name: "记录发现"
+        details: "记录发现的任何问题和采取的行动，注意任何重复模式或需要改进的领域"
+        tool_list: []
+
+  - name: "investigatePodFailures"
+    task_goal: "Pod状态异常问题调查运维方案"
+    middle: "kubectl"
+    steps:
+      - name: "步骤1：检查Pod状态"
+        details: "工具：get_pods。目的：快速确认命名空间中是否存在状态异常的Pod。决策逻辑：如果所有Pod都处于Running状态且Ready，则立即停止排查，返回当前未发现异常Pod；如果发现异常状态Pod（如Pending、CrashLoopBackOff、ImagePullBackOff等），请记录Pod名称和状态，进入到下一步"
+        tool_list: ["get_pods"]
+      - name: "步骤2：获取Pod详细信息"
+        details: "工具：describe_pod。目的：分析Pod的详细状态和事件信息。方法：选择一个异常状态的Pod进行调查，查看Pod的事件、容器状态、资源限制等信息。重点关注事件中的错误信息和警告"
+        tool_list: ["describe_pod"]
+      - name: "步骤3：检查Pod日志"
+        details: "工具：pod_logs。目的：查看Pod容器的日志，识别应用程序错误或启动问题。要求：仔细阅读日志中的错误信息、异常堆栈和启动失败原因"
+        tool_list: ["pod_logs"]
+      - name: "步骤4：检查资源使用情况"
+        details: "工具：top_pods。目的：确认Pod是否因资源不足导致异常。关键指标分析：CPU使用率、内存使用率。决策逻辑：资源使用率接近或超过限制，则可能需要调整资源请求和限制；资源使用正常，则进入步骤5"
+        tool_list: ["top_pods"]
+      - name: "步骤5：检查节点状态"
+        details: "工具：get_nodes。目的：确认Pod所在节点是否正常。关键指标分析：节点状态、可用资源、节点条件。决策逻辑：节点异常，则可能需要调度Pod到其他节点；节点正常，则进入步骤6"
+        tool_list: ["get_nodes"]
+      - name: "步骤6：检查集群事件"
+        details: "工具：get_events。目的：查看与Pod相关的集群事件，识别调度失败、镜像拉取失败等问题。决策逻辑：发现相关事件，则根据事件信息解决问题；未发现相关事件，则进入步骤7"
+        tool_list: ["get_events"]
+      - name: "步骤7：生成排障报告"
+        details: "目的：汇总发现的问题和解决方案。输出内容：1、异常Pod名称和状态；2、Pod详细信息分析结果；3、日志分析结果；4、资源使用情况评估；5、节点状态评估；6、集群事件分析结果；7、综合解决方案建议"
+        tool_list: []
+
+  - name: "investigateServiceIssues"
+    task_goal: "服务不可用问题调查运维方案"
+    middle: "kubectl"
+    steps:
+      - name: "步骤1：检查服务状态"
+        details: "工具：get_services。目的：确认命名空间中的服务状态。决策逻辑：如果所有服务都正常且有对应的Endpoints，则立即停止排查，返回当前未发现服务异常；如果发现服务异常（如没有Endpoints、ClusterIP未分配等），请记录服务名称和状态，进入到下一步"
+        tool_list: ["get_services"]
+      - name: "步骤2：检查后端Pod状态"
+        details: "工具：get_pods。目的：确认服务的后端Pod是否正常运行。关键指标分析：Pod状态、就绪状态。决策逻辑：后端Pod异常，则需要先解决Pod问题；后端Pod正常，则进入步骤3"
+        tool_list: ["get_pods"]
+      - name: "步骤3：检查服务配置"
+        details: "工具：describe_pod。目的：分析服务的配置是否正确。方法：查看服务的选择器（selector）是否正确匹配Pod标签，端口配置是否正确。决策逻辑：配置错误，则修正服务配置；配置正确，则进入步骤4"
+        tool_list: ["describe_pod"]
+      - name: "步骤4：检查网络策略"
+        details: "工具：get_events。目的：确认是否存在网络策略阻止服务访问。关键指标分析：集群事件中的网络相关错误。决策逻辑：发现网络策略问题，则调整网络策略；未发现问题，则进入步骤5"
+        tool_list: ["get_events"]
+      - name: "步骤5：检查DNS配置"
+        details: "工具：get_pods。目的：确认集群DNS服务是否正常。方法：检查kube-system命名空间中的CoreDNS Pod状态。决策逻辑：DNS异常，则需要解决DNS问题；DNS正常，则进入步骤6"
+        tool_list: ["get_pods"]
+      - name: "步骤6：生成排障报告"
+        details: "目的：汇总发现的问题和解决方案。输出内容：1、异常服务名称和状态；2、后端Pod状态分析结果；3、服务配置分析结果；4、网络策略评估；5、DNS配置评估；6、综合解决方案建议"
+        tool_list: []
+
+  - name: "investigateHighResourceUsage"
+    task_goal: "资源使用率过高问题调查运维方案"
+    middle: "kubectl"
+    steps:
+      - name: "步骤1：检查节点资源使用情况"
+        details: "工具：top_nodes。目的：确认集群中是否存在资源使用率过高的节点。决策逻辑：如果所有节点资源使用率都在正常范围内（CPU<80%，内存<85%），则立即停止排查，返回当前未发现资源使用率异常；如果发现节点资源使用率过高，请记录节点名称和使用率，进入到下一步"
+        tool_list: ["top_nodes"]
+      - name: "步骤2：检查Pod资源使用情况"
+        details: "工具：top_pods。目的：识别导致资源使用率过高的Pod。关键指标分析：CPU使用率、内存使用率。决策逻辑：发现高资源使用的Pod，记录Pod名称和资源使用情况；未发现异常Pod，则进入步骤3"
+        tool_list: ["top_pods"]
+      - name: "步骤3：检查节点详细信息"
+        details: "工具：describe_node。目的：分析节点的详细状态和资源分配情况。关键指标分析：可分配资源、已分配资源、节点条件。决策逻辑：资源分配不合理，则需要调整资源请求和限制；资源分配合理，则进入步骤4"
+        tool_list: ["describe_node"]
+      - name: "步骤4：检查部署配置"
+        details: "工具：get_deployments。目的：确认部署的资源请求和限制配置是否合理。关键指标分析：副本数、资源请求、资源限制。决策逻辑：配置不合理，则调整部署配置；配置合理，则进入步骤5"
+        tool_list: ["get_deployments"]
+      - name: "步骤5：检查集群事件"
+        details: "工具：get_events。目的：查看与资源相关的集群事件，识别OOM、资源不足等问题。决策逻辑：发现相关事件，则根据事件信息解决问题；未发现相关事件，则进入步骤6"
+        tool_list: ["get_events"]
+      - name: "步骤6：生成优化建议报告"
+        details: "目的：汇总发现的问题和优化建议。输出内容：1、高资源使用节点列表；2、高资源使用Pod分析；3、节点资源分配评估；4、部署配置分析结果；5、集群事件分析结果；6、资源优化建议（包括扩容、配置调整、Pod迁移等）"
+        tool_list: []
+
+  - name: "investigateNetworkIssues"
+    task_goal: "集群网络问题调查运维方案"
+    middle: "kubectl"
+    steps:
+      - name: "步骤1：检查节点网络状态"
+        details: "工具：get_nodes。目的：确认集群中所有节点的网络状态是否正常。决策逻辑：如果所有节点都处于Ready状态且网络正常，则进入下一步；如果发现节点网络异常，请记录节点名称和状态，进入到节点网络问题排查"
+        tool_list: ["get_nodes"]
+      - name: "步骤2：检查Pod网络状态"
+        details: "工具：get_pods。目的：确认Pod的网络状态是否正常。关键指标分析：Pod状态、IP地址分配。决策逻辑：发现Pod网络异常，记录Pod名称和异常情况；未发现异常，则进入步骤3"
+        tool_list: ["get_pods"]
+      - name: "步骤3：检查服务网络状态"
+        details: "工具：get_services。目的：确认服务的网络状态是否正常。关键指标分析：ClusterIP分配、Endpoints。决策逻辑：发现服务网络异常，记录服务名称和异常情况；未发现异常，则进入步骤4"
+        tool_list: ["get_services"]
+      - name: "步骤4：检查网络组件状态"
+        details: "工具：get_pods。目的：确认集群网络组件（如CNI插件、CoreDNS）是否正常。方法：检查kube-system命名空间中的网络相关Pod状态。决策逻辑：网络组件异常，则需要解决网络组件问题；网络组件正常，则进入步骤5"
+        tool_list: ["get_pods"]
+      - name: "步骤5：检查集群事件"
+        details: "工具：get_events。目的：查看与网络相关的集群事件，识别网络插件错误、DNS解析失败等问题。决策逻辑：发现相关事件，则根据事件信息解决问题；未发现相关事件，则进入步骤6"
+        tool_list: ["get_events"]
+      - name: "步骤6：生成网络问题分析报告"
+        details: "目的：汇总发现的网络问题和解决方案。输出内容：1、节点网络状态分析；2、Pod网络状态分析；3、服务网络状态分析；4、网络组件状态评估；5、集群事件分析结果；6、网络问题解决方案建议"
+        tool_list: []
+
+  - name: "investigateStorageIssues"
+    task_goal: "存储问题调查运维方案"
+    middle: "kubectl"
+    steps:
+      - name: "步骤1：检查Pod状态"
+        details: "工具：get_pods。目的：确认是否存在因存储问题导致的Pod异常。决策逻辑：如果所有Pod都正常运行且没有存储相关错误，则进入下一步；如果发现Pod因存储问题异常（如Pending、CrashLoopBackOff），请记录Pod名称和状态，进入到详细分析"
+        tool_list: ["get_pods"]
+      - name: "步骤2：检查Pod详细信息"
+        details: "工具：describe_pod。目的：分析Pod的存储相关事件和卷挂载状态。关键指标分析：卷挂载状态、存储相关事件。决策逻辑：发现存储相关错误，记录错误信息；未发现错误，则进入步骤3"
+        tool_list: ["describe_pod"]
+      - name: "步骤3：检查Pod日志"
+        details: "工具：pod_logs。目的：查看Pod容器日志中的存储相关错误。关键指标分析：文件系统错误、挂载失败、权限问题。决策逻辑：发现存储相关错误，记录错误信息；未发现错误，则进入步骤4"
+        tool_list: ["pod_logs"]
+      - name: "步骤4：检查节点存储状态"
+        details: "工具：describe_node。目的：确认节点的存储状态是否正常。关键指标分析：可用磁盘空间、磁盘IO、节点条件。决策逻辑：节点存储异常，则需要解决节点存储问题；节点存储正常，则进入步骤5"
+        tool_list: ["describe_node"]
+      - name: "步骤5：检查集群事件"
+        details: "工具：get_events。目的：查看与存储相关的集群事件，识别PV、PVC、StorageClass相关问题。决策逻辑：发现相关事件，则根据事件信息解决问题；未发现相关事件，则进入步骤6"
+        tool_list: ["get_events"]
+      - name: "步骤6：生成存储问题分析报告"
+        details: "目的：汇总发现的存储问题和解决方案。输出内容：1、异常Pod列表和状态；2、Pod详细信息分析结果；3、Pod日志分析结果；4、节点存储状态评估；5、集群事件分析结果；6、存储问题解决方案建议（包括清理磁盘、调整存储配置、修复权限问题等）"
+        tool_list: []
