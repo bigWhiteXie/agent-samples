@@ -23,3 +23,23 @@ func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	)
 	return ctp, nil
 }
+
+func newAnalaysisChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	ctp = prompt.FromMessages(schema.GoTemplate,
+		&schema.Message{
+			Role:    schema.System,
+			Content: inprompt.StepAnalysisTemplate,
+		},
+	)
+	return ctp, nil
+}
+
+func newReportChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	ctp = prompt.FromMessages(schema.GoTemplate,
+		&schema.Message{
+			Role:    schema.System,
+			Content: inprompt.ReportTemplate,
+		},
+	)
+	return ctp, nil
+}

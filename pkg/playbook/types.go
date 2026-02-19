@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	itool "agent-samples/pkg/tool"
+
 	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino/components/tool"
 )
 
 type Step struct {
@@ -25,9 +28,12 @@ type Record struct {
 }
 
 type State struct {
-	Current  int      // 当前执行步骤
-	History  []Record // 历史执行结果
-	PlayBook *PlayBook
+	Current    int      // 当前执行步骤
+	History    []Record // 历史执行结果
+	PlayBook   *PlayBook
+	StepCall   map[string]bool   // 当前步骤调用的工具列表
+	CallResult map[string]string // 工具调用结果
+	ErrorInfo  map[string]string // 工具调用异常信息
 }
 
 // 运维诊断方案
@@ -86,4 +92,18 @@ func (p *PlayBook) Format() string {
 	}
 
 	return detailsBuilder.String()
+}
+
+func (p *PlayBook) GetTools() []tool.InvokableTool {
+	tools := make([]tool.InvokableTool, 0)
+	for _, step := range p.Steps {
+		for _, toolName := range step.ToolList {
+			t := itool.GetTool(toolName)
+			if t != nil {
+				tools = append(tools, t)
+			}
+		}
+	}
+
+	return tools
 }

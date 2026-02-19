@@ -3,11 +3,14 @@ package executor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 
 	"agent-samples/pkg/playbook"
 
+	"github.com/cloudwego/eino/compose"
+	"github.com/cloudwego/eino/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +50,13 @@ func TestBuildplaybook(t *testing.T) {
 	// assert.NotEmpty(t, result)
 
 	// 流式执行
-	output, err := graph.Stream(ctx, *mockPlaybook)
+	msgChan := make(chan *schema.Message, 10)
+	callback := NewModelCallback(msgChan)
+
+	output, err := graph.Stream(ctx, *mockPlaybook, compose.WithCallbacks(callback).DesignateNode("toolLLM", "analysisLLM", "reportLLM"))
+	for msg := range msgChan {
+		fmt.Print(msg)
+	}
 	chunk, revErr := output.Recv()
 	if revErr != nil {
 		if !errors.Is(revErr, io.EOF) {

@@ -69,9 +69,14 @@ func GetToolMap() map[string]tool.InvokableTool {
 	return toolMap
 }
 
-// todo
+func GetTool(name string) tool.InvokableTool {
+	tool := toolMap[name]
+	return tool
+}
+
+// 根据yaml文件构建工具列表
 func (t *ToolConfigYaml) buildTools() ([]tool.InvokableTool, error) {
 	tools := make([]tool.InvokableTool, 0)
-
+	tools = append(tools, BuildBashTool(*t)...)
 	return tools, nil
 }

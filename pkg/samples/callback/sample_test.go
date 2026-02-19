@@ -12,7 +12,6 @@ import (
 
 func TestSample(t *testing.T) {
 	ctx := context.Background()
-
 	top := compose.NewGraph[map[string]any, []*schema.Message]()
 	sub := compose.NewGraph[map[string]any, []*schema.Message]()
 	_ = sub.AddChatTemplateNode("tmpl_nested", prompt.FromMessages(schema.FString, schema.UserMessage("Hello, {name}!")))

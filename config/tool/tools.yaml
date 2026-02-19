@@ -46,7 +46,6 @@ inner_tools:
         description: "获取网络使用指标，包括网络接口流量、连接数和网络IO统计"
         exec: "echo '=== 网络接口流量 ===' && cat /proc/net/dev && echo '' && echo '=== 网络连接统计 ===' && ss -s && echo '' && echo '=== 活跃网络连接 ===' && ss -tuln | head -20 && echo '' && echo '=== 网络接口状态 ===' && ip link show"
       - name: "get_process_metrics"
-        - name: "get_process_metrics"
         description: "获取进程相关指标，包括进程数量、资源使用情况和系统调用统计"
         exec: "echo '=== 进程统计 ===' && echo '总进程数: ' $(ps aux | wc -l) && echo '运行中: ' $(ps aux | grep -E ' R ' | wc -l) && echo '睡眠中: ' $(ps aux | grep -E ' S ' | wc -l) && echo '' && echo '=== 资源使用TOP进程 ===' && ps aux --sort=-%cpu,-%mem | head -11 && echo '' && echo '=== 系统调用统计 ===' && cat /proc/stat | grep -E 'processes|procs_running|procs_blocked'"
       - name: "check_system_resource"
